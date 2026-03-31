@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#2f6f34" />
+  <title>Google Form Response Lookup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="page-shell">
+    <section class="card lookup-card">
+      <div class="hero-copy">
+        <span class="eyebrow">Response Verification</span>
+        <h1>Check if a response is already recorded</h1>
+      </div>
+
+      <form id="lookupForm" novalidate>
+        <div class="grid">
+          <label class="field">
+            <span>Email Address</span>
+            <input type="email" id="email" placeholder="name@example.com" autocomplete="email" />
+          </label>
+
+          <label class="field">
+            <span>Last Name</span>
+            <input type="text" id="lastName" placeholder="Dela Cruz" autocomplete="family-name" />
+          </label>
+
+          <label class="field">
+            <span>First Name</span>
+            <input type="text" id="firstName" placeholder="Juan" autocomplete="given-name" />
+          </label>
+
+          <label class="field">
+            <span>Middle Name</span>
+            <input type="text" id="middleName" placeholder="Santos" autocomplete="additional-name" />
+          </label>
+
+          <label class="field field-full">
+            <span>Birthdate</span>
+            <input type="date" id="birthdate" autocomplete="bday" />
+          </label>
+        </div>
+
+        <div id="statusMessage" class="status" aria-live="polite"></div>
+
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="checkBtn">Check Record</button>
+          <button type="reset" class="btn btn-ghost">Clear</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card results-card is-hidden" id="resultsSection">
+      <div class="results-head">
+        <h2>Recorded Response</h2>
+        <span class="result-count" id="resultCountBadge">0 result</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Email Address</th>
+              <th>Last Name</th>
+              <th>First Name</th>
+              <th>Middle Name</th>
+              <th>Birthdate</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="notFoundModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notFoundTitle">
+      <button class="modal-close" id="closeModalBtn" aria-label="Close">×</button>
+      <div class="modal-icon modal-icon-danger">!</div>
+      <h2 id="notFoundTitle">No Record Found</h2>
+      <p class="modal-subtitle">No matching record was found in Google Sheets.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" id="answerFormBtn">Answer Google Form</button>
+        <button type="button" class="btn btn-ghost" id="dismissModalBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
