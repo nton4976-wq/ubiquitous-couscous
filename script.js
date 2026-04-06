@@ -1,9 +1,10 @@
 const CONFIG = {
- appsScriptUrl: 'https://script.google.com/macros/s/AKfycbyhGx1NMugRAH5NlB_ic0ujWD4L6INUV-imjopYmKr7Tw1AKX_m3whSxiixqxCxrOKyeQ/exec',
+ appsScriptUrl: 'https://script.google.com/macros/s/AKfycbxXD3h22F5A8iBWEeWNLEZMnbzAtVPK8C3uKDXsHNxW9h3Lgu6WSobPagaPk3VUYQJp6A/exec',
   googleFormUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSdIcr7-lC4Lm5zkYiRm_56rlV3vDbx5izsxV-dSuQc1einRRg/viewform',
   requestTimeoutMs: 20000,
   minimumRequiredFields: 2,
 };
+
 
 const form = document.getElementById('lookupForm');
 const statusMessage = document.getElementById('statusMessage');
@@ -17,18 +18,40 @@ const closeModalBtn = document.getElementById('closeModalBtn');
 const dismissModalBtn = document.getElementById('dismissModalBtn');
 const answerFormBtn = document.getElementById('answerFormBtn');
 
+const showQrBtn = document.getElementById('showQrBtn');
+const qrModal = document.getElementById('qrModal');
+const closeQrModalBtn = document.getElementById('closeQrModalBtn');
+const closeQrBtn = document.getElementById('closeQrBtn');
+const qrCanvas = document.getElementById('qrCanvas');
+
+let qrInstance = null;
+
 form.addEventListener('submit', handleLookup);
 form.addEventListener('reset', handleReset);
+
 closeModalBtn.addEventListener('click', closeNoRecordModal);
 dismissModalBtn.addEventListener('click', closeNoRecordModal);
 answerFormBtn.addEventListener('click', () => {
   window.location.href = CONFIG.googleFormUrl;
 });
+
 notFoundModal.addEventListener('click', (event) => {
   if (event.target === notFoundModal) closeNoRecordModal();
 });
+
+showQrBtn.addEventListener('click', openQrModal);
+closeQrModalBtn.addEventListener('click', closeQrModal);
+closeQrBtn.addEventListener('click', closeQrModal);
+
+qrModal.addEventListener('click', (event) => {
+  if (event.target === qrModal) closeQrModal();
+});
+
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') closeNoRecordModal();
+  if (event.key === 'Escape') {
+    closeNoRecordModal();
+    closeQrModal();
+  }
 });
 
 async function handleLookup(event) {
@@ -48,7 +71,7 @@ async function handleLookup(event) {
   }
 
   if (!hasMinimumSearchFields(input)) {
-    setStatus(`Enter at least ${CONFIG.minimumRequiredFields} fields to search the Google Sheet.`, 'error');
+    setStatus('Enter any 2 of these 3 fields: First Name, Last Name, Birthdate.', 'error');
     hideResults();
     return;
   }
@@ -85,15 +108,14 @@ function handleReset() {
     setStatus('');
     hideResults();
     closeNoRecordModal();
+    closeQrModal();
   }, 0);
 }
 
 function getNormalizedInput() {
   return {
-    email: normalizeEmail(document.getElementById('email').value),
-    lastName: normalizeText(document.getElementById('lastName').value),
-    firstName: normalizeText(document.getElementById('firstName').value),
-    middleName: normalizeText(document.getElementById('middleName').value),
+    lastName: normalizeName(document.getElementById('lastName').value),
+    firstName: normalizeName(document.getElementById('firstName').value),
     birthdate: normalizeDate(document.getElementById('birthdate').value),
   };
 }
@@ -123,11 +145,11 @@ function renderResults(results) {
     const row = document.createElement('tr');
     row.innerHTML = `
       <td data-label="Timestamp">${escapeHtml(formatTimestamp(record.timestamp || ''))}</td>
-      <td data-label="Email Address">${renderNullable(record.email)}</td>
       <td data-label="Last Name">${renderNullable(record.lastName)}</td>
       <td data-label="First Name">${renderNullable(record.firstName)}</td>
       <td data-label="Middle Name">${renderNullable(record.middleName)}</td>
       <td data-label="Birthdate">${renderNullable(formatBirthdate(record.birthdate))}</td>
+      <td data-label="Email Address">${renderNullable(record.email)}</td>
     `;
     resultsBody.appendChild(row);
   });
@@ -146,25 +168,71 @@ function renderNullable(value) {
 function hideResults() {
   resultsBody.innerHTML = '';
   resultsSection.classList.add('is-hidden');
+  resultCountBadge.textContent = '0 result';
 }
 
 function openNoRecordModal() {
   notFoundModal.classList.add('show');
   notFoundModal.setAttribute('aria-hidden', 'false');
+  syncBodyModalState();
 }
 
 function closeNoRecordModal() {
   notFoundModal.classList.remove('show');
   notFoundModal.setAttribute('aria-hidden', 'true');
+  syncBodyModalState();
+}
+
+function openQrModal() {
+  if (!CONFIG.googleFormUrl.includes('docs.google.com/forms')) {
+    setStatus('Please set your Google Form URL first in script.js.', 'error');
+    return;
+  }
+
+  if (typeof QRious === 'undefined') {
+    setStatus('QR library failed to load. Check your internet connection.', 'error');
+    return;
+  }
+
+  if (!qrInstance) {
+    qrInstance = new QRious({
+      element: qrCanvas,
+      value: CONFIG.googleFormUrl,
+      size: 320,
+      level: 'H',
+      background: 'white',
+      foreground: 'black',
+      padding: 16,
+    });
+  } else {
+    qrInstance.value = CONFIG.googleFormUrl;
+    qrInstance.size = 320;
+  }
+
+  qrModal.classList.add('show');
+  qrModal.setAttribute('aria-hidden', 'false');
+  syncBodyModalState();
+}
+
+function closeQrModal() {
+  qrModal.classList.remove('show');
+  qrModal.setAttribute('aria-hidden', 'true');
+  syncBodyModalState();
+}
+
+function syncBodyModalState() {
+  const hasOpenModal =
+    notFoundModal.classList.contains('show') ||
+    qrModal.classList.contains('show');
+
+  document.body.classList.toggle('modal-open', hasOpenModal);
 }
 
 function lookupRecord(input) {
   return jsonpRequest(CONFIG.appsScriptUrl, {
     action: 'lookup',
-    email: input.email,
     lastName: input.lastName,
     firstName: input.firstName,
-    middleName: input.middleName,
     birthdate: input.birthdate,
   });
 }
@@ -216,16 +284,12 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-function normalizeText(value) {
+function normalizeName(value) {
   return String(value || '')
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, ' ')
+    .replace(/\s+/g, '')
     .replace(/[.,]/g, '');
-}
-
-function normalizeEmail(value) {
-  return String(value || '').toLowerCase().trim();
 }
 
 function normalizeDate(value) {
@@ -260,6 +324,7 @@ function formatBirthdate(value) {
 
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value || '—';
+
   return parsed.toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'long',
