@@ -9,7 +9,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <link rel="icon" type="image/png" href="icon.png">
 </head>
 <body>
   <main class="page-shell">
@@ -17,15 +16,13 @@
       <div class="hero-copy">
         <span class="eyebrow">Response Verification</span>
         <h1>Check if a response is already recorded</h1>
+        <p class="hero-subtitle">
+          Search using First Name, Last Name, and Birthdate. A record is found when any 2 of the 3 fields match.
+        </p>
       </div>
 
       <form id="lookupForm" novalidate>
-        <div class="grid">
-          <label class="field">
-            <span>Email Address</span>
-            <input type="email" id="email" placeholder="name@example.com" autocomplete="email" />
-          </label>
-
+        <div class="grid grid-3">
           <label class="field">
             <span>Last Name</span>
             <input type="text" id="lastName" placeholder="Dela Cruz" autocomplete="family-name" />
@@ -37,11 +34,6 @@
           </label>
 
           <label class="field">
-            <span>Middle Name</span>
-            <input type="text" id="middleName" placeholder="Santos" autocomplete="additional-name" />
-          </label>
-
-          <label class="field field-full">
             <span>Birthdate</span>
             <input type="date" id="birthdate" autocomplete="bday" />
           </label>
@@ -51,6 +43,7 @@
 
         <div class="actions">
           <button type="submit" class="btn btn-primary" id="checkBtn">Check Record</button>
+          <button type="button" class="btn btn-secondary" id="showQrBtn">Show QR Code</button>
           <button type="reset" class="btn btn-ghost">Clear</button>
         </div>
       </form>
@@ -67,11 +60,11 @@
           <thead>
             <tr>
               <th>Timestamp</th>
-              <th>Email Address</th>
               <th>Last Name</th>
               <th>First Name</th>
               <th>Middle Name</th>
               <th>Birthdate</th>
+              <th>Email Address</th>
             </tr>
           </thead>
           <tbody id="resultsBody"></tbody>
@@ -93,6 +86,23 @@
     </div>
   </div>
 
+  <div class="modal-backdrop" id="qrModal" aria-hidden="true">
+    <div class="modal qr-modal" role="dialog" aria-modal="true" aria-labelledby="qrTitle">
+      <button class="modal-close" id="closeQrModalBtn" aria-label="Close">×</button>
+      <h2 id="qrTitle">Scan QR Code</h2>
+      <p class="modal-subtitle">Scan this QR code to open the Google Form.</p>
+
+      <div class="qr-box">
+        <canvas id="qrCanvas"></canvas>
+      </div>
+
+      <div class="modal-actions qr-actions">
+        <button type="button" class="btn btn-ghost" id="closeQrBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
