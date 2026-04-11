@@ -203,10 +203,8 @@ function renderResults(results) {
       <td data-label="First Name" class="cell-compact">${renderNullable(record.firstName)}</td>
       <td data-label="Middle Name" class="cell-compact">${renderNullable(record.middleName)}</td>
       <td data-label="Last Name" class="cell-compact">${renderNullable(record.lastName)}</td>
-      <td data-label="Sex Assigned at Birth" class="cell-compact">${renderNullable(record.sexAssignedAtBirth)}</td>
       <td data-label="Degree Program" class="cell-medium">${renderNullable(record.degreeProgram)}</td>
       <td data-label="Campus/College" class="cell-medium">${renderNullable(record.campusCollege)}</td>
-      <td data-label="Presently Employed" class="cell-compact">${renderNullable(record.presentlyEmployed)}</td>
     `;
     resultsBody.appendChild(row);
   });
