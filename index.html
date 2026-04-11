@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#2f6f34" />
-  <title>Google Form Response Lookup</title>
+  <title>Alumni Yearbook Claim Lookup</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -14,44 +14,44 @@
   <main class="page-shell">
     <section class="card lookup-card">
       <div class="hero-copy">
-        <span class="eyebrow">Response Verification</span>
-        <h1>Check if a response is already recorded</h1>
+        <span class="eyebrow">Yearbook Claim Verification</span>
+        <h1>Graduate Employability Response Checker</h1>
         <p class="hero-subtitle">
-          Search using First Name, Last Name, and Birthdate. A record is found when any 2 of the 3 fields match.
         </p>
       </div>
 
       <form id="lookupForm" novalidate>
-        <div class="grid grid-3">
+        <div class="grid grid-2">
           <label class="field">
-            <span>Last Name</span>
-            <input type="text" id="lastName" placeholder="Dela Cruz" autocomplete="family-name" />
+            <span><b>FIRST NAME</b></span>
+            <input type="text" id="firstName" placeholder="First Name" autocomplete="given-name" />
           </label>
 
           <label class="field">
-            <span>First Name</span>
-            <input type="text" id="firstName" placeholder="Juan" autocomplete="given-name" />
-          </label>
-
-          <label class="field">
-            <span>Birthdate</span>
-            <input type="date" id="birthdate" autocomplete="bday" />
+            <span><b>LAST NAME</b></span>
+            <input type="text" id="lastName" placeholder="Last Name" autocomplete="family-name" />
           </label>
         </div>
 
         <div id="statusMessage" class="status" aria-live="polite"></div>
 
-        <div class="actions">
-          <button type="submit" class="btn btn-primary" id="checkBtn">Check Record</button>
-          <button type="button" class="btn btn-secondary" id="showQrBtn">Show QR Code</button>
-          <button type="reset" class="btn btn-ghost">Clear</button>
+        <div class="action-row">
+          <div class="actions-left">
+            <button type="submit" class="btn btn-primary" id="checkBtn">Search Alumni</button>
+            <button type="reset" class="btn btn-ghost">Clear</button>
+          </div>
+
+          <div class="actions-right">
+            <button type="button" class="btn btn-secondary" id="showQrBtn">Answer via QR Code</button>
+            <button type="button" class="btn btn-secondary" id="copyLinkBtn">Copy Link</button>
+          </div>
         </div>
       </form>
     </section>
 
     <section class="card results-card is-hidden" id="resultsSection">
       <div class="results-head">
-        <h2>Recorded Response</h2>
+        <h2>Matched Alumni Record</h2>
         <span class="result-count" id="resultCountBadge">0 result</span>
       </div>
 
@@ -60,11 +60,13 @@
           <thead>
             <tr>
               <th>Timestamp</th>
-              <th>Last Name</th>
               <th>First Name</th>
               <th>Middle Name</th>
-              <th>Birthdate</th>
-              <th>Email Address</th>
+              <th>Last Name</th>
+              <th>Sex Assigned at Birth</th>
+              <th>Degree Program</th>
+              <th>Campus/College</th>
+              <th>Presently Employed</th>
             </tr>
           </thead>
           <tbody id="resultsBody"></tbody>
@@ -75,28 +77,42 @@
 
   <div class="modal-backdrop" id="notFoundModal" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notFoundTitle">
-      <button class="modal-close" id="closeModalBtn" aria-label="Close">×</button>
+      <button class="modal-close" id="closeNotFoundModalBtn" aria-label="Close">×</button>
       <div class="modal-icon modal-icon-danger">!</div>
       <h2 id="notFoundTitle">No Record Found</h2>
-      <p class="modal-subtitle">No matching record was found in Google Sheets.</p>
+      <p class="modal-subtitle">No matching first name and last name were found in Form Responses 1.</p>
       <div class="modal-actions">
-        <button type="button" class="btn btn-primary" id="answerFormBtn">Answer Google Form</button>
-        <button type="button" class="btn btn-ghost" id="dismissModalBtn">Close</button>
+        <button type="button" class="btn btn-ghost" id="dismissNotFoundModalBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="claimModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="claimModalTitle">
+      <button class="modal-close" id="closeClaimModalBtn" aria-label="Close">×</button>
+      <div class="modal-icon modal-icon-success">?</div>
+      <h2 id="claimModalTitle">Is this alumnus/alumna claiming their yearbook today?</h2>
+      <p class="modal-subtitle" id="claimModalSubtitle">Choose YES to record this alumni in the logbook sheet.</p>
+      <div class="modal-actions modal-actions-split">
+        <button type="button" class="btn btn-primary" id="claimYesBtn">YES</button>
+        <button type="button" class="btn btn-ghost" id="claimNoBtn">NO</button>
       </div>
     </div>
   </div>
 
   <div class="modal-backdrop" id="qrModal" aria-hidden="true">
-    <div class="modal qr-modal" role="dialog" aria-modal="true" aria-labelledby="qrTitle">
+    <div class="modal qr-modal" role="dialog" aria-modal="true" aria-labelledby="qrModalTitle">
       <button class="modal-close" id="closeQrModalBtn" aria-label="Close">×</button>
-      <h2 id="qrTitle">Scan QR Code</h2>
-      <p class="modal-subtitle">Scan this QR code to open the Google Form.</p>
-
+      <div class="modal-icon modal-icon-success">⌁</div>
+      <h2 id="qrModalTitle">Scan to Answer the Google Form</h2>
+      <p class="modal-subtitle">Use your phone camera or QR scanner to open the Google Form.</p>
       <div class="qr-box">
         <canvas id="qrCanvas"></canvas>
       </div>
-
-      <div class="modal-actions qr-actions">
+      <div class="qr-link-wrap">
+        <a id="qrFormLink" class="qr-form-link" href="#" target="_blank" rel="noopener noreferrer">Open Google Form</a>
+      </div>
+      <div class="modal-actions modal-actions-split">
         <button type="button" class="btn btn-ghost" id="closeQrBtn">Close</button>
       </div>
     </div>
