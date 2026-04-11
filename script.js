@@ -1,10 +1,8 @@
 const CONFIG = {
- appsScriptUrl: 'https://script.google.com/macros/s/AKfycbxXD3h22F5A8iBWEeWNLEZMnbzAtVPK8C3uKDXsHNxW9h3Lgu6WSobPagaPk3VUYQJp6A/exec',
-  googleFormUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSdIcr7-lC4Lm5zkYiRm_56rlV3vDbx5izsxV-dSuQc1einRRg/viewform',
+  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbwnAz-H_B1jXLaVhRK98X6avBBc25hDtllxAifExBOOIb6yOwKJwvxf6B4V8xo8s0Ktdw/exec',
+  googleFormUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSerIsiV_wCqtP2qC_V_cdzvw4bVEaw9zG1bnUphm9-ME9BZBQ/viewform',
   requestTimeoutMs: 20000,
-  minimumRequiredFields: 2,
 };
-
 
 const form = document.getElementById('lookupForm');
 const statusMessage = document.getElementById('statusMessage');
@@ -14,34 +12,47 @@ const resultsBody = document.getElementById('resultsBody');
 const resultCountBadge = document.getElementById('resultCountBadge');
 
 const notFoundModal = document.getElementById('notFoundModal');
-const closeModalBtn = document.getElementById('closeModalBtn');
-const dismissModalBtn = document.getElementById('dismissModalBtn');
-const answerFormBtn = document.getElementById('answerFormBtn');
+const closeNotFoundModalBtn = document.getElementById('closeNotFoundModalBtn');
+const dismissNotFoundModalBtn = document.getElementById('dismissNotFoundModalBtn');
+
+const claimModal = document.getElementById('claimModal');
+const closeClaimModalBtn = document.getElementById('closeClaimModalBtn');
+const claimNoBtn = document.getElementById('claimNoBtn');
+const claimYesBtn = document.getElementById('claimYesBtn');
+const claimModalSubtitle = document.getElementById('claimModalSubtitle');
 
 const showQrBtn = document.getElementById('showQrBtn');
+const copyLinkBtn = document.getElementById('copyLinkBtn');
 const qrModal = document.getElementById('qrModal');
 const closeQrModalBtn = document.getElementById('closeQrModalBtn');
 const closeQrBtn = document.getElementById('closeQrBtn');
 const qrCanvas = document.getElementById('qrCanvas');
+const qrFormLink = document.getElementById('qrFormLink');
 
+let currentMatchedRows = [];
 let qrInstance = null;
 
 form.addEventListener('submit', handleLookup);
 form.addEventListener('reset', handleReset);
 
-closeModalBtn.addEventListener('click', closeNoRecordModal);
-dismissModalBtn.addEventListener('click', closeNoRecordModal);
-answerFormBtn.addEventListener('click', () => {
-  window.location.href = CONFIG.googleFormUrl;
-});
-
-notFoundModal.addEventListener('click', (event) => {
-  if (event.target === notFoundModal) closeNoRecordModal();
-});
+closeNotFoundModalBtn.addEventListener('click', closeNotFoundModal);
+dismissNotFoundModalBtn.addEventListener('click', closeNotFoundModal);
+closeClaimModalBtn.addEventListener('click', closeClaimModal);
+claimNoBtn.addEventListener('click', closeClaimModal);
+claimYesBtn.addEventListener('click', handleClaimYes);
 
 showQrBtn.addEventListener('click', openQrModal);
+copyLinkBtn.addEventListener('click', copyGoogleFormLink);
 closeQrModalBtn.addEventListener('click', closeQrModal);
 closeQrBtn.addEventListener('click', closeQrModal);
+
+notFoundModal.addEventListener('click', (event) => {
+  if (event.target === notFoundModal) closeNotFoundModal();
+});
+
+claimModal.addEventListener('click', (event) => {
+  if (event.target === claimModal) closeClaimModal();
+});
 
 qrModal.addEventListener('click', (event) => {
   if (event.target === qrModal) closeQrModal();
@@ -49,14 +60,16 @@ qrModal.addEventListener('click', (event) => {
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
-    closeNoRecordModal();
+    closeNotFoundModal();
+    closeClaimModal();
     closeQrModal();
   }
 });
 
 async function handleLookup(event) {
   event.preventDefault();
-  closeNoRecordModal();
+  closeNotFoundModal();
+  closeClaimModal();
 
   const input = getNormalizedInput();
 
@@ -65,75 +78,117 @@ async function handleLookup(event) {
     return;
   }
 
-  if (!CONFIG.googleFormUrl.includes('docs.google.com/forms')) {
-    setStatus('Please set your Google Form URL first in script.js.', 'error');
-    return;
-  }
-
-  if (!hasMinimumSearchFields(input)) {
-    setStatus('Enter any 2 of these 3 fields: First Name, Last Name, Birthdate.', 'error');
+  if (!input.firstName || !input.lastName) {
+    setStatus('Please enter both First Name and Last Name.', 'error');
     hideResults();
     return;
   }
 
   try {
-    setLoadingState(true);
-    setStatus('Checking Google Sheets records...', 'success');
+    setLookupLoadingState(true);
+    setStatus('Searching alumni record...', 'success');
 
-    const response = await lookupRecord(input);
+    const response = await jsonpRequest(CONFIG.appsScriptUrl, {
+      action: 'lookup',
+      firstName: input.firstName,
+      lastName: input.lastName,
+    });
 
     if (!response || response.ok !== true) {
       throw new Error(response?.error || 'Unable to read the sheet records.');
     }
 
     if (!Array.isArray(response.results) || response.results.length === 0) {
+      currentMatchedRows = [];
       hideResults();
       setStatus('No record found.', 'error');
-      openNoRecordModal();
+      openNotFoundModal();
       return;
     }
 
+    currentMatchedRows = response.results
+      .map((record) => Number(record.rowNumber))
+      .filter((rowNumber) => Number.isInteger(rowNumber) && rowNumber > 0);
+
     renderResults(response.results);
     setStatus('Record found.', 'success');
+    openClaimModal(response.results.length);
   } catch (error) {
+    currentMatchedRows = [];
     hideResults();
-    setStatus(error.message || 'Something went wrong while checking the record.', 'error');
+    setStatus(error.message || 'Something went wrong while searching.', 'error');
   } finally {
-    setLoadingState(false);
+    setLookupLoadingState(false);
+  }
+}
+
+async function handleClaimYes() {
+  if (!currentMatchedRows.length) {
+    closeClaimModal();
+    setStatus('No matched record is ready to log.', 'error');
+    return;
+  }
+
+  try {
+    setClaimLoadingState(true);
+    setStatus('Recording claim in logbook...', 'success');
+
+    const response = await jsonpRequest(CONFIG.appsScriptUrl, {
+      action: 'claim',
+      rowNumbers: currentMatchedRows.join(','),
+    });
+
+    if (!response || response.ok !== true) {
+      throw new Error(response?.error || 'Unable to record the claim in logbook.');
+    }
+
+    const insertedCount = Number(response.insertedCount || 0);
+    closeClaimModal();
+    setStatus(
+      insertedCount > 0
+        ? `Claim recorded successfully in logbook. ${insertedCount} row${insertedCount > 1 ? 's' : ''} added.`
+        : 'No new row was added to the logbook.',
+      insertedCount > 0 ? 'success' : 'error'
+    );
+  } catch (error) {
+    setStatus(error.message || 'Something went wrong while saving the claim.', 'error');
+  } finally {
+    setClaimLoadingState(false);
   }
 }
 
 function handleReset() {
   setTimeout(() => {
+    currentMatchedRows = [];
     setStatus('');
     hideResults();
-    closeNoRecordModal();
+    closeNotFoundModal();
+    closeClaimModal();
     closeQrModal();
   }, 0);
 }
 
 function getNormalizedInput() {
   return {
-    lastName: normalizeName(document.getElementById('lastName').value),
     firstName: normalizeName(document.getElementById('firstName').value),
-    birthdate: normalizeDate(document.getElementById('birthdate').value),
+    lastName: normalizeName(document.getElementById('lastName').value),
   };
 }
 
-function hasMinimumSearchFields(input) {
-  return countFilledFields(input) >= CONFIG.minimumRequiredFields;
-}
-
-function countFilledFields(input) {
-  return Object.values(input).filter(Boolean).length;
-}
-
-function setLoadingState(isLoading) {
+function setLookupLoadingState(isLoading) {
   checkBtn.disabled = isLoading;
-  checkBtn.textContent = isLoading ? 'Checking...' : 'Check Record';
+  checkBtn.textContent = isLoading ? 'Searching...' : 'Search Alumni';
+}
+
+function setClaimLoadingState(isLoading) {
+  claimYesBtn.disabled = isLoading;
+  claimNoBtn.disabled = isLoading;
+  closeClaimModalBtn.disabled = isLoading;
+  claimYesBtn.textContent = isLoading ? 'Saving...' : 'YES';
 }
 
 function setStatus(message, type = '') {
+  if (!statusMessage) return;
   statusMessage.textContent = message;
   statusMessage.className = `status ${type}`.trim();
 }
@@ -144,12 +199,14 @@ function renderResults(results) {
   results.forEach((record) => {
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td data-label="Timestamp">${escapeHtml(formatTimestamp(record.timestamp || ''))}</td>
-      <td data-label="Last Name">${renderNullable(record.lastName)}</td>
-      <td data-label="First Name">${renderNullable(record.firstName)}</td>
-      <td data-label="Middle Name">${renderNullable(record.middleName)}</td>
-      <td data-label="Birthdate">${renderNullable(formatBirthdate(record.birthdate))}</td>
-      <td data-label="Email Address">${renderNullable(record.email)}</td>
+      <td data-label="Timestamp" class="cell-medium">${escapeHtml(formatTimestamp(record.timestamp || ''))}</td>
+      <td data-label="First Name" class="cell-compact">${renderNullable(record.firstName)}</td>
+      <td data-label="Middle Name" class="cell-compact">${renderNullable(record.middleName)}</td>
+      <td data-label="Last Name" class="cell-compact">${renderNullable(record.lastName)}</td>
+      <td data-label="Sex Assigned at Birth" class="cell-compact">${renderNullable(record.sexAssignedAtBirth)}</td>
+      <td data-label="Degree Program" class="cell-medium">${renderNullable(record.degreeProgram)}</td>
+      <td data-label="Campus/College" class="cell-medium">${renderNullable(record.campusCollege)}</td>
+      <td data-label="Presently Employed" class="cell-compact">${renderNullable(record.presentlyEmployed)}</td>
     `;
     resultsBody.appendChild(row);
   });
@@ -161,7 +218,9 @@ function renderResults(results) {
 }
 
 function renderNullable(value) {
-  if (!value || String(value).trim() === '') return '<span class="empty-cell">—</span>';
+  if (!value || String(value).trim() === '') {
+    return '<span class="empty-cell">—</span>';
+  }
   return escapeHtml(String(value));
 }
 
@@ -171,15 +230,30 @@ function hideResults() {
   resultCountBadge.textContent = '0 result';
 }
 
-function openNoRecordModal() {
+function openNotFoundModal() {
   notFoundModal.classList.add('show');
   notFoundModal.setAttribute('aria-hidden', 'false');
   syncBodyModalState();
 }
 
-function closeNoRecordModal() {
+function closeNotFoundModal() {
   notFoundModal.classList.remove('show');
   notFoundModal.setAttribute('aria-hidden', 'true');
+  syncBodyModalState();
+}
+
+function openClaimModal(resultCount) {
+  claimModalSubtitle.textContent = resultCount > 1
+    ? `There are ${resultCount} matched records shown below. Choose YES to record all displayed records in the logbook.`
+    : 'Choose YES to record this alumni in the logbook sheet.';
+  claimModal.classList.add('show');
+  claimModal.setAttribute('aria-hidden', 'false');
+  syncBodyModalState();
+}
+
+function closeClaimModal() {
+  claimModal.classList.remove('show');
+  claimModal.setAttribute('aria-hidden', 'true');
   syncBodyModalState();
 }
 
@@ -190,7 +264,7 @@ function openQrModal() {
   }
 
   if (typeof QRious === 'undefined') {
-    setStatus('QR library failed to load. Check your internet connection.', 'error');
+    setStatus('QR code library failed to load. Check your internet connection.', 'error');
     return;
   }
 
@@ -202,13 +276,14 @@ function openQrModal() {
       level: 'H',
       background: 'white',
       foreground: 'black',
-      padding: 16,
+      padding: 14,
     });
   } else {
     qrInstance.value = CONFIG.googleFormUrl;
     qrInstance.size = 320;
   }
 
+  qrFormLink.href = CONFIG.googleFormUrl;
   qrModal.classList.add('show');
   qrModal.setAttribute('aria-hidden', 'false');
   syncBodyModalState();
@@ -220,21 +295,43 @@ function closeQrModal() {
   syncBodyModalState();
 }
 
+async function copyGoogleFormLink() {
+  if (!CONFIG.googleFormUrl.includes('docs.google.com/forms')) {
+    setStatus('Please set your Google Form URL first in script.js.', 'error');
+    return;
+  }
+
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(CONFIG.googleFormUrl);
+    } else {
+      fallbackCopyText(CONFIG.googleFormUrl);
+    }
+    setStatus('Google Form link copied.', 'success');
+  } catch (error) {
+    setStatus('Unable to copy the Google Form link.', 'error');
+  }
+}
+
+function fallbackCopyText(text) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.setAttribute('readonly', '');
+  textArea.style.position = 'fixed';
+  textArea.style.left = '-9999px';
+  document.body.appendChild(textArea);
+  textArea.select();
+  document.execCommand('copy');
+  textArea.remove();
+}
+
 function syncBodyModalState() {
   const hasOpenModal =
     notFoundModal.classList.contains('show') ||
+    claimModal.classList.contains('show') ||
     qrModal.classList.contains('show');
 
   document.body.classList.toggle('modal-open', hasOpenModal);
-}
-
-function lookupRecord(input) {
-  return jsonpRequest(CONFIG.appsScriptUrl, {
-    action: 'lookup',
-    lastName: input.lastName,
-    firstName: input.firstName,
-    birthdate: input.birthdate,
-  });
 }
 
 function jsonpRequest(baseUrl, params) {
@@ -275,6 +372,13 @@ function jsonpRequest(baseUrl, params) {
   });
 }
 
+function normalizeName(value) {
+  return String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '');
+}
+
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -282,54 +386,6 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-}
-
-function normalizeName(value) {
-  return String(value || '')
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '')
-    .replace(/[.,]/g, '');
-}
-
-function normalizeDate(value) {
-  if (!value) return '';
-
-  const raw = String(value).trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
-
-  const parsed = new Date(raw);
-  if (Number.isNaN(parsed.getTime())) return '';
-
-  const yyyy = parsed.getFullYear();
-  const mm = String(parsed.getMonth() + 1).padStart(2, '0');
-  const dd = String(parsed.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function formatBirthdate(value) {
-  if (!value) return '—';
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
-    const [year, month, day] = String(value).split('-').map(Number);
-    const parsed = new Date(year, month - 1, day);
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-    }
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value || '—';
-
-  return parsed.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
 }
 
 function formatTimestamp(value) {
