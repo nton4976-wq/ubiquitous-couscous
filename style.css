@@ -620,9 +620,14 @@ input:focus {
     margin-left: 0;
   }
 
-  .actions-right .btn,
-  .actions-left .btn {
-    flex: 1 1 220px;
+  .actions-left,
+  .actions-right {
+    gap: 10px;
+  }
+
+  .actions-left .btn,
+  .actions-right .btn {
+    flex: 0 0 auto;
   }
 }
 
@@ -647,8 +652,6 @@ input:focus {
   }
 
   .action-row,
-  .actions-left,
-  .actions-right,
   .logbook-filter-row,
   .modal-actions {
     flex-direction: column;
@@ -657,7 +660,20 @@ input:focus {
 
   .actions-right,
   .actions-left {
+    width: 100%;
     margin-left: 0;
+  }
+
+  .actions-left {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, max-content));
+    justify-content: start;
+  }
+
+  .actions-right {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
   }
 
   .actions-left .btn,
@@ -666,6 +682,13 @@ input:focus {
   .modal-actions .btn,
   .filter-field {
     width: 100%;
+    flex: 0 0 auto;
+  }
+
+  .actions-right .btn {
+    min-height: 46px;
+    padding: 11px 12px;
+    font-size: 0.95rem;
   }
 
   .table-wrap {
@@ -730,7 +753,29 @@ input:focus {
   }
 
   .logbook-table-wrap {
-    max-height: none;
+    max-height: min(52vh, 460px);
+  }
+
+  .logbook-table tbody td {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding: 14px 16px;
+    min-height: 0;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .logbook-table tbody td::before {
+    position: static;
+    width: auto;
+    font-size: 0.76rem;
+    line-height: 1.35;
+  }
+
+  .logbook-table tbody td:nth-child(3) {
+    white-space: nowrap;
   }
 
   .claim-body {
@@ -791,6 +836,22 @@ input:focus {
     font-size: 1.65rem;
   }
 
+  .actions-left {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .actions-right {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .actions-right .btn,
+  .actions-left .btn {
+    min-height: 44px;
+    padding: 10px 10px;
+    font-size: 0.9rem;
+  }
+
   .results-table tbody td {
     padding-left: 118px;
   }
@@ -798,6 +859,16 @@ input:focus {
   .results-table tbody td::before {
     width: 88px;
     font-size: 0.72rem;
+  }
+
+  .logbook-table tbody td {
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .logbook-table tbody td:nth-child(3) {
+    white-space: normal;
   }
 
   .modal-close {
