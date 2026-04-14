@@ -1,8 +1,30 @@
 const CONFIG = {
-  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbwnAz-H_B1jXLaVhRK98X6avBBc25hDtllxAifExBOOIb6yOwKJwvxf6B4V8xo8s0Ktdw/exec',
-  googleFormUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSerIsiV_wCqtP2qC_V_cdzvw4bVEaw9zG1bnUphm9-ME9BZBQ/viewform',
+  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbyM2g9ZWUeXafy6bAtkzJr9mtSkBzkMcjG1tUrfBeHHQzp36nA9YQfYIBS6bRFZHlmoTw/exec',
+  googleFormUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSdIcr7-lC4Lm5zkYiRm_56rlV3vDbx5izsxV-dSuQc1einRRg/viewform',
   requestTimeoutMs: 20000,
 };
+
+
+const CAMPUS_ABBREVIATIONS = {
+  'collegeofartsandsciences': 'CAS',
+  'collegeofeducation': 'CED',
+  'collegeofbusinessandaccountancy': 'CBA',
+  'collegeofengineeringandtechnology': 'CET',
+  'instituteofinformationtechnologycollegeofcomputingmultimediaartsanddigitalinnovation': 'IIT/CCMADI',
+  'instituteofinformationtechnologyccmadi': 'IIT/CCMADI',
+  'collegeofcomputingmultimediaartsanddigitalinnovation': 'CCMADI',
+  'instituteofcriminaljusticeeducation': 'ICJE',
+  'collegeofagricultureforestryandenvironmentalscience': 'CAFES',
+  'sanandrescampus': 'San Andres',
+  'calatravacampus': 'Calatrava',
+  'sanagustincampus': 'San Agustin',
+  'santamariacampus': 'Santa Maria',
+  'santafecampus': 'Santa Fe',
+  'rombloncampus': 'Romblon',
+  'sanfernandocampus': 'San Fernando',
+  'cajidiocancampus': 'Cajidiocan'
+};
+
 
 const form = document.getElementById('lookupForm');
 const statusMessage = document.getElementById('statusMessage');
@@ -16,7 +38,6 @@ const closeNotFoundModalBtn = document.getElementById('closeNotFoundModalBtn');
 const dismissNotFoundModalBtn = document.getElementById('dismissNotFoundModalBtn');
 
 const claimModal = document.getElementById('claimModal');
-const closeClaimModalBtn = document.getElementById('closeClaimModalBtn');
 const claimNoBtn = document.getElementById('claimNoBtn');
 const claimYesBtn = document.getElementById('claimYesBtn');
 const claimModalSubtitle = document.getElementById('claimModalSubtitle');
@@ -29,29 +50,32 @@ const closeQrBtn = document.getElementById('closeQrBtn');
 const qrCanvas = document.getElementById('qrCanvas');
 const qrFormLink = document.getElementById('qrFormLink');
 
+const logbookBody = document.getElementById('logbookBody');
+const logbookDateFilter = document.getElementById('logbookDateFilter');
+const logbookCountBadge = document.getElementById('logbookCountBadge');
+const refreshLogbookBtn = document.getElementById('refreshLogbookBtn');
+
 let currentMatchedRows = [];
 let qrInstance = null;
+let isClaimSubmitting = false;
 
 form.addEventListener('submit', handleLookup);
 form.addEventListener('reset', handleReset);
 
 closeNotFoundModalBtn.addEventListener('click', closeNotFoundModal);
 dismissNotFoundModalBtn.addEventListener('click', closeNotFoundModal);
-closeClaimModalBtn.addEventListener('click', closeClaimModal);
-claimNoBtn.addEventListener('click', closeClaimModal);
+claimNoBtn.addEventListener('click', closeClaimModalByChoice);
 claimYesBtn.addEventListener('click', handleClaimYes);
 
 showQrBtn.addEventListener('click', openQrModal);
 copyLinkBtn.addEventListener('click', copyGoogleFormLink);
 closeQrModalBtn.addEventListener('click', closeQrModal);
 closeQrBtn.addEventListener('click', closeQrModal);
+refreshLogbookBtn.addEventListener('click', () => loadLogbookList(logbookDateFilter.value));
+logbookDateFilter.addEventListener('change', () => loadLogbookList(logbookDateFilter.value));
 
 notFoundModal.addEventListener('click', (event) => {
   if (event.target === notFoundModal) closeNotFoundModal();
-});
-
-claimModal.addEventListener('click', (event) => {
-  if (event.target === claimModal) closeClaimModal();
 });
 
 qrModal.addEventListener('click', (event) => {
@@ -59,11 +83,20 @@ qrModal.addEventListener('click', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') {
-    closeNotFoundModal();
-    closeClaimModal();
+  if (event.key !== 'Escape') return;
+
+  if (qrModal.classList.contains('show')) {
     closeQrModal();
+    return;
   }
+
+  if (notFoundModal.classList.contains('show')) {
+    closeNotFoundModal();
+  }
+});
+
+window.addEventListener('load', () => {
+  loadLogbookList('');
 });
 
 async function handleLookup(event) {
@@ -130,6 +163,7 @@ async function handleClaimYes() {
   }
 
   try {
+    isClaimSubmitting = true;
     setClaimLoadingState(true);
     setStatus('Recording claim in logbook...', 'success');
 
@@ -150,9 +184,12 @@ async function handleClaimYes() {
         : 'No new row was added to the logbook.',
       insertedCount > 0 ? 'success' : 'error'
     );
+
+    await loadLogbookList(response.filterDate || '');
   } catch (error) {
     setStatus(error.message || 'Something went wrong while saving the claim.', 'error');
   } finally {
+    isClaimSubmitting = false;
     setClaimLoadingState(false);
   }
 }
@@ -183,8 +220,8 @@ function setLookupLoadingState(isLoading) {
 function setClaimLoadingState(isLoading) {
   claimYesBtn.disabled = isLoading;
   claimNoBtn.disabled = isLoading;
-  closeClaimModalBtn.disabled = isLoading;
-  claimYesBtn.textContent = isLoading ? 'Saving...' : 'YES';
+  claimYesBtn.textContent = isLoading ? 'SAVING...' : 'OO, I-RECORD';
+  claimNoBtn.textContent = 'HINDI';
 }
 
 function setStatus(message, type = '') {
@@ -200,11 +237,11 @@ function renderResults(results) {
     const row = document.createElement('tr');
     row.innerHTML = `
       <td data-label="Timestamp" class="cell-medium">${escapeHtml(formatTimestamp(record.timestamp || ''))}</td>
-      <td data-label="First Name" class="cell-compact">${renderNullable(record.firstName)}</td>
+      <td data-label="First Name" class="cell-medium cell-namewrap">${renderNullable(record.firstName)}</td>
       <td data-label="Middle Name" class="cell-compact">${renderNullable(record.middleName)}</td>
       <td data-label="Last Name" class="cell-compact">${renderNullable(record.lastName)}</td>
       <td data-label="Degree Program" class="cell-medium">${renderNullable(record.degreeProgram)}</td>
-      <td data-label="Campus/College" class="cell-medium">${renderNullable(record.campusCollege)}</td>
+      <td data-label="Campus/College" class="cell-medium">${renderNullable(abbreviateCampus(record.campusCollege))}</td>
     `;
     resultsBody.appendChild(row);
   });
@@ -242,11 +279,16 @@ function closeNotFoundModal() {
 
 function openClaimModal(resultCount) {
   claimModalSubtitle.textContent = resultCount > 1
-    ? `There are ${resultCount} matched records shown below. Choose YES to record all displayed records in the logbook.`
-    : 'Choose YES to record this alumni in the logbook sheet.';
+    ? `May ${resultCount} magkatulad na tala. Pindutin ang OO para maisama silang lahat sa logbook ngayong araw.`
+    : 'Pindutin ang OO para maitala agad sa logbook ngayong araw.';
   claimModal.classList.add('show');
   claimModal.setAttribute('aria-hidden', 'false');
   syncBodyModalState();
+}
+
+function closeClaimModalByChoice() {
+  if (isClaimSubmitting) return;
+  closeClaimModal();
 }
 
 function closeClaimModal() {
@@ -312,15 +354,77 @@ async function copyGoogleFormLink() {
 }
 
 function fallbackCopyText(text) {
-  const textArea = document.createElement('textarea');
-  textArea.value = text;
-  textArea.setAttribute('readonly', '');
-  textArea.style.position = 'fixed';
-  textArea.style.left = '-9999px';
-  document.body.appendChild(textArea);
-  textArea.select();
+  const temp = document.createElement('textarea');
+  temp.value = text;
+  temp.setAttribute('readonly', '');
+  temp.style.position = 'absolute';
+  temp.style.left = '-9999px';
+  document.body.appendChild(temp);
+  temp.select();
   document.execCommand('copy');
-  textArea.remove();
+  document.body.removeChild(temp);
+}
+
+async function loadLogbookList(filterDate) {
+  if (!CONFIG.appsScriptUrl.includes('/exec')) return;
+
+  try {
+    refreshLogbookBtn.disabled = true;
+
+    const response = await jsonpRequest(CONFIG.appsScriptUrl, {
+      action: 'logbook_list',
+      filterDate: filterDate || '',
+    });
+
+    if (!response || response.ok !== true) {
+      throw new Error(response?.error || 'Unable to load the logbook list.');
+    }
+
+    const normalizedFilterDate = response.filterDate || '';
+    if (normalizedFilterDate && logbookDateFilter.value !== normalizedFilterDate) {
+      logbookDateFilter.value = normalizedFilterDate;
+    }
+
+    renderLogbookList(response.results || []);
+  } catch (error) {
+    renderLogbookList([], error.message || 'Unable to load logbook list.');
+  } finally {
+    refreshLogbookBtn.disabled = false;
+  }
+}
+
+function renderLogbookList(records, errorMessage = '') {
+  logbookBody.innerHTML = '';
+
+  if (errorMessage) {
+    const row = document.createElement('tr');
+    row.className = 'empty-state-row';
+    row.innerHTML = `<td colspan="3">${escapeHtml(errorMessage)}</td>`;
+    logbookBody.appendChild(row);
+    logbookCountBadge.textContent = '0 record';
+    return;
+  }
+
+  if (!records.length) {
+    const row = document.createElement('tr');
+    row.className = 'empty-state-row';
+    row.innerHTML = '<td colspan="3">No logbook record found for the selected date.</td>';
+    logbookBody.appendChild(row);
+    logbookCountBadge.textContent = '0 record';
+    return;
+  }
+
+  records.forEach((record, index) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td data-label="No" class="cell-compact">${index + 1}</td>
+      <td data-label="Full Name" class="cell-name">${renderNullable(record.fullName)}</td>
+      <td data-label="Campus" class="cell-medium">${renderNullable(abbreviateCampus(record.campusCollege))}</td>
+    `;
+    logbookBody.appendChild(row);
+  });
+
+  logbookCountBadge.textContent = `${records.length} ${records.length === 1 ? 'record' : 'records'}`;
 }
 
 function syncBodyModalState() {
@@ -377,13 +481,21 @@ function normalizeName(value) {
     .replace(/\s+/g, '');
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+
+function abbreviateCampus(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  const normalized = normalizeCampusKey(raw);
+  return CAMPUS_ABBREVIATIONS[normalized] || raw;
+}
+
+function normalizeCampusKey(value) {
+  return String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '')
+    .replace(/[^a-z0-9]/g, '');
 }
 
 function formatTimestamp(value) {
@@ -414,4 +526,13 @@ function formatTimestamp(value) {
     .toLowerCase();
 
   return `${datePart}- ${timePart}`;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
