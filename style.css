@@ -753,29 +753,43 @@ input:focus {
   }
 
   .logbook-table-wrap {
-    max-height: min(52vh, 460px);
+    max-height: 360px;
+  }
+
+  .logbook-table tbody {
+    gap: 12px;
+  }
+
+  .logbook-table tbody tr {
+    border-radius: 16px;
   }
 
   .logbook-table tbody td {
     display: grid;
-    grid-template-columns: 92px minmax(0, 1fr);
-    gap: 12px;
-    align-items: start;
-    padding: 14px 16px;
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    padding: 12px 14px;
     min-height: 0;
     overflow-wrap: normal;
     word-break: normal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .logbook-table tbody td::before {
     position: static;
     width: auto;
     font-size: 0.76rem;
-    line-height: 1.35;
+    line-height: 1.3;
   }
 
+  .logbook-table tbody td:nth-child(2),
   .logbook-table tbody td:nth-child(3) {
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .claim-body {
@@ -847,9 +861,19 @@ input:focus {
 
   .actions-right .btn,
   .actions-left .btn {
-    min-height: 44px;
+    min-height: 42px;
     padding: 10px 10px;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
+  }
+
+  .logbook-table-wrap {
+    max-height: 320px;
+  }
+
+  .logbook-table tbody td {
+    grid-template-columns: 80px minmax(0, 1fr);
+    gap: 8px;
+    padding: 11px 12px;
   }
 
   .results-table tbody td {
