@@ -4,25 +4,43 @@ const CONFIG = {
   requestTimeoutMs: 20000,
 };
 
-
 const CAMPUS_ABBREVIATIONS = {
   'collegeofartsandsciences': 'CAS',
+  'cas': 'CAS',
   'collegeofeducation': 'CED',
+  'ced': 'CED',
   'collegeofbusinessandaccountancy': 'CBA',
+  'cba': 'CBA',
   'collegeofengineeringandtechnology': 'CET',
+  'cet': 'CET',
   'instituteofinformationtechnologycollegeofcomputingmultimediaartsanddigitalinnovation': 'IIT/CCMADI',
   'instituteofinformationtechnologyccmadi': 'IIT/CCMADI',
-  'collegeofcomputingmultimediaartsanddigitalinnovation': 'CCMADI',
+  'instituteofinformationtechnology': 'IIT/CCMADI',
+  'collegeofcomputingmultimediaartsanddigitalinnovation': 'IIT/CCMADI',
+  'iitccmadi': 'IIT/CCMADI',
+  'iit': 'IIT/CCMADI',
+  'ccmadi': 'IIT/CCMADI',
   'instituteofcriminaljusticeeducation': 'ICJE',
+  'icije': 'ICJE',
+  'icje': 'ICJE',
   'collegeofagricultureforestryandenvironmentalscience': 'CAFES',
+  'cafes': 'CAFES',
   'sanandrescampus': 'San Andres',
+  'sanandres': 'San Andres',
   'calatravacampus': 'Calatrava',
+  'calatrava': 'Calatrava',
   'sanagustincampus': 'San Agustin',
+  'sanagustin': 'San Agustin',
   'santamariacampus': 'Santa Maria',
+  'santamaria': 'Santa Maria',
   'santafecampus': 'Santa Fe',
+  'santafe': 'Santa Fe',
   'rombloncampus': 'Romblon',
+  'romblon': 'Romblon',
   'sanfernandocampus': 'San Fernando',
-  'cajidiocancampus': 'Cajidiocan'
+  'sanfernando': 'San Fernando',
+  'cajidiocancampus': 'Cajidiocan',
+  'cajidiocan': 'Cajidiocan'
 };
 
 
@@ -58,6 +76,9 @@ const refreshLogbookBtn = document.getElementById('refreshLogbookBtn');
 let currentMatchedRows = [];
 let qrInstance = null;
 let isClaimSubmitting = false;
+let logbookAutoRefreshTimer = null;
+let isLogbookLoading = false;
+let hasManualLogbookFilter = false;
 
 form.addEventListener('submit', handleLookup);
 form.addEventListener('reset', handleReset);
@@ -71,8 +92,15 @@ showQrBtn.addEventListener('click', openQrModal);
 copyLinkBtn.addEventListener('click', copyGoogleFormLink);
 closeQrModalBtn.addEventListener('click', closeQrModal);
 closeQrBtn.addEventListener('click', closeQrModal);
-refreshLogbookBtn.addEventListener('click', () => loadLogbookList(logbookDateFilter.value));
-logbookDateFilter.addEventListener('change', () => loadLogbookList(logbookDateFilter.value));
+refreshLogbookBtn.addEventListener('click', () => {
+  if (logbookDateFilter.value) hasManualLogbookFilter = true;
+  loadLogbookList(getActiveLogbookFilterDate());
+});
+
+logbookDateFilter.addEventListener('change', () => {
+  hasManualLogbookFilter = Boolean(logbookDateFilter.value);
+  loadLogbookList(getActiveLogbookFilterDate());
+});
 
 notFoundModal.addEventListener('click', (event) => {
   if (event.target === notFoundModal) closeNotFoundModal();
@@ -97,6 +125,17 @@ document.addEventListener('keydown', (event) => {
 
 window.addEventListener('load', () => {
   loadLogbookList('');
+  startLogbookAutoRefresh();
+});
+
+window.addEventListener('focus', () => {
+  loadLogbookList(getActiveLogbookFilterDate(), { silent: true });
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    loadLogbookList(getActiveLogbookFilterDate(), { silent: true });
+  }
 });
 
 async function handleLookup(event) {
@@ -185,7 +224,9 @@ async function handleClaimYes() {
       insertedCount > 0 ? 'success' : 'error'
     );
 
-    await loadLogbookList(response.filterDate || '');
+    hasManualLogbookFilter = true;
+    if (response.filterDate) logbookDateFilter.value = response.filterDate;
+    await loadLogbookList(response.filterDate || getActiveLogbookFilterDate());
   } catch (error) {
     setStatus(error.message || 'Something went wrong while saving the claim.', 'error');
   } finally {
@@ -365,10 +406,14 @@ function fallbackCopyText(text) {
   document.body.removeChild(temp);
 }
 
-async function loadLogbookList(filterDate) {
+async function loadLogbookList(filterDate, options = {}) {
   if (!CONFIG.appsScriptUrl.includes('/exec')) return;
+  if (isLogbookLoading) return;
+
+  const { silent = false } = options;
 
   try {
+    isLogbookLoading = true;
     refreshLogbookBtn.disabled = true;
 
     const response = await jsonpRequest(CONFIG.appsScriptUrl, {
@@ -381,16 +426,38 @@ async function loadLogbookList(filterDate) {
     }
 
     const normalizedFilterDate = response.filterDate || '';
-    if (normalizedFilterDate && logbookDateFilter.value !== normalizedFilterDate) {
-      logbookDateFilter.value = normalizedFilterDate;
+    if (!hasManualLogbookFilter) {
+      logbookDateFilter.value = normalizedFilterDate || '';
     }
 
     renderLogbookList(response.results || []);
   } catch (error) {
-    renderLogbookList([], error.message || 'Unable to load logbook list.');
+    if (!silent) {
+      renderLogbookList([], error.message || 'Unable to load logbook list.');
+    }
   } finally {
+    isLogbookLoading = false;
     refreshLogbookBtn.disabled = false;
   }
+}
+
+function startLogbookAutoRefresh() {
+  stopLogbookAutoRefresh();
+
+  logbookAutoRefreshTimer = window.setInterval(() => {
+    loadLogbookList(getActiveLogbookFilterDate(), { silent: true });
+  }, CONFIG.logbookAutoRefreshMs);
+}
+
+function stopLogbookAutoRefresh() {
+  if (logbookAutoRefreshTimer) {
+    window.clearInterval(logbookAutoRefreshTimer);
+    logbookAutoRefreshTimer = null;
+  }
+}
+
+function getActiveLogbookFilterDate() {
+  return hasManualLogbookFilter ? (logbookDateFilter.value || '') : '';
 }
 
 function renderLogbookList(records, errorMessage = '') {
@@ -487,7 +554,29 @@ function abbreviateCampus(value) {
   if (!raw) return '';
 
   const normalized = normalizeCampusKey(raw);
-  return CAMPUS_ABBREVIATIONS[normalized] || raw;
+  if (CAMPUS_ABBREVIATIONS[normalized]) {
+    return CAMPUS_ABBREVIATIONS[normalized];
+  }
+
+  if (normalized.includes('instituteofinformationtechnology') || normalized.includes('collegeofcomputingmultimediaartsanddigitalinnovation')) {
+    return 'IIT/CCMADI';
+  }
+  if (normalized.includes('collegeofartsandsciences')) return 'CAS';
+  if (normalized.includes('collegeofeducation')) return 'CED';
+  if (normalized.includes('collegeofbusinessandaccountancy')) return 'CBA';
+  if (normalized.includes('collegeofengineeringandtechnology')) return 'CET';
+  if (normalized.includes('instituteofcriminaljusticeeducation')) return 'ICJE';
+  if (normalized.includes('collegeofagricultureforestryandenvironmentalscience')) return 'CAFES';
+  if (normalized.includes('sanandres')) return 'San Andres';
+  if (normalized.includes('calatrava')) return 'Calatrava';
+  if (normalized.includes('sanagustin')) return 'San Agustin';
+  if (normalized.includes('santamaria')) return 'Santa Maria';
+  if (normalized.includes('santafe')) return 'Santa Fe';
+  if (normalized.includes('romblon')) return 'Romblon';
+  if (normalized.includes('sanfernando')) return 'San Fernando';
+  if (normalized.includes('cajidiocan')) return 'Cajidiocan';
+
+  return raw;
 }
 
 function normalizeCampusKey(value) {
