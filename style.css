@@ -753,7 +753,8 @@ input:focus {
   }
 
   .logbook-table-wrap {
-    max-height: 360px;
+    max-height: none;
+    overflow-y: visible;
   }
 
   .logbook-table tbody {
@@ -768,14 +769,15 @@ input:focus {
     display: grid;
     grid-template-columns: 88px minmax(0, 1fr);
     gap: 10px;
-    align-items: center;
+    align-items: start;
     padding: 12px 14px;
     min-height: 0;
-    overflow-wrap: normal;
-    word-break: normal;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.45;
   }
 
   .logbook-table tbody td::before {
@@ -787,9 +789,9 @@ input:focus {
 
   .logbook-table tbody td:nth-child(2),
   .logbook-table tbody td:nth-child(3) {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
   }
 
   .claim-body {
@@ -867,7 +869,8 @@ input:focus {
   }
 
   .logbook-table-wrap {
-    max-height: 320px;
+    max-height: none;
+    overflow-y: visible;
   }
 
   .logbook-table tbody td {
