@@ -941,3 +941,33 @@ input:focus {
     font-size: 0.84rem;
   }
 }
+
+/* Make the NO column wider on desktop/table view */
+.logbook-table th:first-child,
+.logbook-table td:first-child {
+  width: 72px;
+  min-width: 72px;
+  white-space: nowrap;
+}
+
+/* Prevent 10, 11, 100 from breaking into separate lines */
+.logbook-table td:first-child,
+.logbook-table td[data-label="No"] {
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+/* Mobile fix */
+@media (max-width: 760px) {
+  .logbook-table td[data-label="No"] {
+    min-width: 72px;
+    white-space: nowrap;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+
+  .logbook-table td[data-label="No"]::before {
+    width: 70px;
+  }
+}
