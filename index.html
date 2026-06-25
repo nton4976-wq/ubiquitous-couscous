@@ -8,7 +8,961 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    :root {
+      --bg: #f4f8f2;
+      --bg-accent: #eaf3e6;
+      --card: rgba(255, 255, 255, 0.96);
+      --text: #17311d;
+      --muted: #5c7061;
+      --line: #d7e5d6;
+      --primary: #2f6f34;
+      --primary-strong: #205126;
+      --primary-soft: #e6f3e7;
+      --danger: #8a3030;
+      --danger-soft: #fff3f3;
+      --shadow: 0 18px 60px rgba(28, 53, 34, 0.12);
+      --shadow-soft: 0 12px 34px rgba(28, 53, 34, 0.08);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --space-xs: 6px;
+      --space-sm: 10px;
+      --space-md: 14px;
+      --space-lg: 18px;
+      --space-xl: 24px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+      -webkit-tap-highlight-color: transparent;
+      scroll-behavior: smooth;
+    }
+
+    html, body {
+      min-height: 100%;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(101, 167, 108, 0.18), transparent 30%),
+        linear-gradient(180deg, var(--bg-accent), var(--bg));
+      color: var(--text);
+      overscroll-behavior-y: auto;
+    }
+
+    body {
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    .page-shell {
+      width: 100%;
+      max-width: 1800px;
+      margin: 0 auto;
+      padding: var(--space-sm);
+    }
+
+    .layout-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-md);
+      align-items: start;
+    }
+
+    .main-column, .side-column {
+      display: grid;
+      gap: var(--space-md);
+      min-width: 0;
+    }
+
+    .card {
+      width: 100%;
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      box-shadow: var(--shadow);
+      border-radius: 20px;
+      padding: var(--space-md);
+      backdrop-filter: blur(12px);
+      min-width: 0;
+    }
+
+    .lookup-card, .logbook-card { overflow: hidden; }
+
+    .hero-copy { margin-bottom: var(--space-md); }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      padding: var(--space-xs) var(--space-sm);
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: var(--primary-strong);
+      font-weight: 800;
+      font-size: 0.75rem;
+      letter-spacing: 0.02em;
+      line-height: 1.4;
+    }
+
+    h1, h2 { color: var(--text); }
+
+    h1 {
+      margin-top: var(--space-sm);
+      font-size: clamp(1.45rem, 5.5vw, 3.4rem);
+      line-height: 1.1;
+    }
+
+    h2 {
+      font-size: clamp(1.1rem, 3.5vw, 1.9rem);
+      line-height: 1.2;
+    }
+
+    .hero-subtitle, .logbook-subtitle, .modal-subtitle, .empty-state {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .hero-subtitle {
+      margin-top: var(--space-sm);
+      max-width: 760px;
+      font-size: clamp(0.88rem, 2.5vw, 1.05rem);
+    }
+
+    .logbook-subtitle { margin-top: 4px; font-size: 0.85rem; }
+
+    .grid { display: grid; gap: var(--space-sm); }
+
+    .grid-2 { grid-template-columns: 1fr; }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field span { font-size: 0.88rem; font-weight: 700; }
+
+    input {
+      width: 100%;
+      min-height: 48px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      outline: none;
+      font: inherit;
+      font-size: 16px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(47, 111, 52, 0.13);
+    }
+
+    .status {
+      min-height: 22px;
+      margin: var(--space-sm) 0 2px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .status.error { color: var(--danger); }
+    .status.success { color: var(--primary-strong); }
+
+    .btn {
+      border: 0;
+      border-radius: 14px;
+      min-height: 48px;
+      padding: 12px 16px;
+      font: inherit;
+      font-weight: 800;
+      font-size: 0.92rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+      touch-action: manipulation;
+      -webkit-touch-callout: none;
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.72; cursor: wait; transform: none; }
+
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(180deg, #458f4b, var(--primary));
+      box-shadow: 0 10px 24px rgba(47, 111, 52, 0.2);
+    }
+
+    .btn-secondary {
+      color: var(--primary-strong);
+      background: #eef7ef;
+      border: 1px solid #d7e8da;
+    }
+
+    .btn-secondary:hover { background: #e4f1e6; }
+
+    .btn-ghost {
+      color: var(--text);
+      background: transparent;
+      border: 1px solid var(--line);
+    }
+
+    .btn-small { min-height: 44px; padding-inline: 14px; font-size: 0.9rem; }
+
+    .action-row {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+      margin-top: var(--space-md);
+    }
+
+    .actions-left, .actions-right {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-sm);
+      width: 100%;
+    }
+
+    .actions-left .btn, .actions-right .btn { width: 100%; }
+
+    .results-card.is-hidden { display: none; }
+
+    .results-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-md);
+      flex-wrap: wrap;
+    }
+
+    .result-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 32px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: var(--primary-strong);
+      font-size: 0.82rem;
+      font-weight: 800;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.9);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .results-table {
+      width: 100%;
+      min-width: 0;
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: fixed;
+    }
+
+    .results-table thead th {
+      position: sticky;
+      top: 0;
+      background: #f3f8f1;
+      color: var(--text);
+      text-align: left;
+      font-size: 0.76rem;
+      font-weight: 800;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+    }
+
+    .results-table tbody td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #edf3ec;
+      vertical-align: top;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .results-table tbody tr:last-child td { border-bottom: 0; }
+
+    .results-table tbody tr:hover { background: rgba(245, 250, 244, 0.75); }
+
+    .cell-compact { max-width: 140px; }
+    .cell-medium { max-width: 180px; }
+    .cell-wide { max-width: 240px; }
+    .cell-namewrap { max-width: 160px; }
+    .logbook-table .cell-name { max-width: 300px; }
+
+    .empty-cell { color: #8a948c; }
+
+    .empty-state-row td {
+      color: var(--muted);
+      text-align: center;
+      padding: 20px 16px;
+    }
+
+    .logbook-filter-row {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-md);
+    }
+
+    .filter-field { width: 100%; }
+
+    .logbook-table-wrap {
+      max-height: min(55vh, 420px);
+      overflow-y: auto;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .logbook-table { min-width: 0; }
+
+    .logbook-table th:first-child, .logbook-table td:first-child {
+      width: 52px;
+      min-width: 52px;
+      white-space: nowrap;
+    }
+
+    .logbook-table th:nth-child(2), .logbook-table td:nth-child(2) { width: 58%; }
+    .logbook-table th:nth-child(3), .logbook-table td:nth-child(3) { width: 42%; }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 20, 11, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-sm);
+      z-index: 999;
+      overscroll-behavior: contain;
+    }
+
+    .modal-backdrop.show { display: flex; }
+
+    .modal {
+      position: relative;
+      width: 100%;
+      max-width: 490px;
+      background: #fff;
+      border-radius: 22px;
+      padding: var(--space-md);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 40px;
+      height: 40px;
+      border: 0;
+      border-radius: 999px;
+      background: #f1f6f1;
+      color: var(--text);
+      font-size: 1.4rem;
+      line-height: 1;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      touch-action: manipulation;
+      z-index: 2;
+    }
+
+    .modal-close:hover { background: #e8f1e8; }
+
+    .modal-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 12px;
+      font-size: 1.4rem;
+      font-weight: 800;
+      background: var(--primary-soft);
+      color: var(--primary-strong);
+      flex-shrink: 0;
+    }
+
+    .modal-icon-danger { background: var(--danger-soft); color: var(--danger); }
+    .modal-icon-success { background: var(--primary-soft); color: var(--primary-strong); }
+
+    .modal h2 {
+      font-size: clamp(1.15rem, 4vw, 1.6rem);
+      line-height: 1.2;
+    }
+
+    .modal-subtitle { margin-top: 8px; font-size: 0.9rem; }
+
+    .modal-actions {
+      margin-top: 20px;
+      display: flex;
+      gap: var(--space-sm);
+      justify-content: flex-start;
+    }
+
+    .modal-actions-split { justify-content: center; }
+
+    .claim-modal {
+      width: 100%;
+      max-width: 640px;
+      padding: 0;
+      overflow: hidden;
+      border-radius: 24px;
+    }
+
+    .claim-banner {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: 14px 16px;
+      background: linear-gradient(135deg, #2f6f34, #4f9d59);
+      color: #fff;
+    }
+
+    .claim-banner-icon {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      font-size: 1.05rem;
+      flex-shrink: 0;
+    }
+
+    .claim-banner-text {
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      font-size: 0.92rem;
+      line-height: 1.3;
+    }
+
+    .claim-body { padding: var(--space-md); }
+
+    .claim-question-icon {
+      width: 60px;
+      height: 60px;
+      font-size: 1.7rem;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .claim-modal h2 {
+      font-size: clamp(1.2rem, 4.5vw, 2.25rem);
+      line-height: 1.15;
+    }
+
+    .claim-subtitle { margin-top: 10px; font-size: 0.94rem; }
+
+    .claim-actions {
+      margin-top: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+
+    .btn-yes, .btn-no { width: 100%; }
+
+    .qr-modal {
+      width: 100%;
+      max-width: 480px;
+      text-align: center;
+      padding: 32px var(--space-md) var(--space-md);
+    }
+
+    .qr-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 16px auto 4px;
+      padding: 16px;
+      border-radius: 20px;
+      background: #fff;
+      border: 1px solid #dfe9e0;
+      box-shadow: inset 0 0 0 1px rgba(47, 111, 52, 0.03);
+    }
+
+    #qrCanvas {
+      display: block;
+      width: min(72vw, 260px) !important;
+      height: min(72vw, 260px) !important;
+      max-width: 260px;
+      max-height: 260px;
+    }
+
+    .qr-link-wrap { margin-top: 10px; }
+
+    .qr-form-link {
+      color: var(--primary-strong);
+      font-weight: 700;
+      text-decoration: none;
+      font-size: 0.94rem;
+      word-break: break-all;
+    }
+
+    .qr-form-link:hover { text-decoration: underline; }
+
+    @media (min-width: 481px) {
+      :root {
+        --space-sm: 12px;
+        --space-md: 18px;
+        --space-lg: 22px;
+      }
+
+      .page-shell { padding: 14px; }
+
+      .card {
+        padding: var(--space-md);
+        border-radius: var(--radius-xl);
+      }
+
+      .eyebrow { padding: 8px 12px; font-size: 0.82rem; }
+
+      h1 { margin-top: 14px; }
+
+      .hero-copy { margin-bottom: var(--space-md); }
+      .hero-subtitle { margin-top: 14px; }
+
+      .grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .field { gap: 8px; }
+      .field span { font-size: 0.95rem; }
+
+      input { min-height: 54px; padding: 14px 15px; }
+
+      .action-row {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: var(--space-md);
+        gap: 12px;
+      }
+
+      .actions-left {
+        display: flex;
+        width: auto;
+        flex: 0 0 auto;
+        grid-template-columns: none;
+      }
+
+      .actions-right {
+        display: flex;
+        width: auto;
+        flex: 0 0 auto;
+        margin-left: auto;
+        justify-content: flex-end;
+        grid-template-columns: none;
+      }
+
+      .actions-left .btn, .actions-right .btn { width: auto; }
+
+      .results-head {
+        align-items: center;
+        flex-direction: row;
+        margin-bottom: var(--space-md);
+      }
+
+      .result-count {
+        min-height: 36px;
+        padding: 8px 14px;
+        font-size: 0.9rem;
+      }
+
+      .results-table thead th {
+        font-size: 0.82rem;
+        padding: 14px 16px;
+      }
+
+      .results-table tbody td {
+        padding: 14px 16px;
+        font-size: 0.94rem;
+      }
+
+      .modal { padding: 26px; border-radius: 24px; }
+
+      .modal-icon {
+        width: 58px;
+        height: 58px;
+        font-size: 1.6rem;
+        margin-bottom: 14px;
+      }
+
+      .modal h2 { font-size: clamp(1.3rem, 3vw, 1.6rem); }
+
+      .claim-banner { padding: 16px 20px; }
+      .claim-banner-icon { width: 40px; height: 40px; font-size: 1.15rem; }
+      .claim-banner-text { font-size: 1rem; }
+      .claim-body { padding: 26px; }
+
+      .claim-question-icon {
+        width: 70px;
+        height: 70px;
+        font-size: 2rem;
+        margin-bottom: 18px;
+      }
+
+      .claim-subtitle { margin-top: 14px; font-size: 1.02rem; }
+
+      .claim-actions { flex-direction: row; margin-top: 24px; }
+
+      .btn-yes { width: auto; min-width: 170px; }
+      .btn-no { width: auto; min-width: 120px; }
+
+      .qr-modal { padding-top: 40px; }
+
+      #qrCanvas {
+        width: min(74vw, 300px) !important;
+        height: min(74vw, 300px) !important;
+        max-width: 300px;
+        max-height: 300px;
+      }
+
+      .logbook-filter-row { flex-direction: row; align-items: flex-end; }
+      .filter-field { flex: 1 1 220px; }
+      .logbook-table-wrap { max-height: min(54vh, 520px); }
+    }
+
+    @media (min-width: 768px) {
+      .layout-grid {
+        grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.8fr);
+        gap: 16px;
+      }
+
+      .main-column, .side-column { gap: 16px; }
+
+      .table-wrap { border-radius: 18px; }
+
+      .results-table { min-width: 700px; }
+
+      .logbook-table-wrap { max-height: min(56vh, 540px); }
+
+      .logbook-table { min-width: 0; }
+
+      .action-row { flex-wrap: wrap; }
+      .actions-left, .actions-right { flex-wrap: wrap; }
+    }
+
+    @media (min-width: 1024px) {
+      .page-shell { padding: clamp(10px, 1.2vw, 18px); }
+
+      .layout-grid {
+        grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.85fr);
+        gap: clamp(14px, 1.2vw, 18px);
+      }
+
+      .main-column, .side-column { gap: clamp(14px, 1.2vw, 18px); }
+
+      .side-column {
+        position: sticky;
+        top: 10px;
+        align-self: start;
+      }
+
+      .card { padding: clamp(18px, 2vw, 28px); }
+
+      .results-table { min-width: 760px; }
+
+      .logbook-table-wrap {
+        max-height: min(70vh, 780px);
+        overflow-y: auto;
+        overflow-x: auto;
+        scrollbar-width: thin;
+      }
+    }
+
+    @media (min-width: 1400px) {
+      .layout-grid { grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr); }
+      .results-table { min-width: 800px; }
+    }
+
+    @media (max-width: 767px) {
+      .table-wrap {
+        overflow: visible;
+        border: 0;
+        background: transparent;
+      }
+
+      .logbook-table-wrap {
+        max-height: min(50vh, 380px);
+        overflow-y: auto;
+        overflow-x: hidden;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        background: rgba(255, 255, 255, 0.9);
+      }
+
+      .results-table:not(.logbook-table),
+      .results-table:not(.logbook-table) thead,
+      .results-table:not(.logbook-table) tbody,
+      .results-table:not(.logbook-table) tr,
+      .results-table:not(.logbook-table) th,
+      .results-table:not(.logbook-table) td {
+        display: block;
+        width: 100%;
+      }
+
+      .results-table:not(.logbook-table) { min-width: 0; }
+      .results-table:not(.logbook-table) thead { display: none; }
+      .results-table:not(.logbook-table) tbody { display: grid; gap: 12px; }
+
+      .results-table:not(.logbook-table) tbody tr {
+        background: #fff;
+        border: 1px solid #e1ebe1;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 10px 28px rgba(22, 44, 26, 0.05);
+      }
+
+      .results-table:not(.logbook-table) tbody td {
+        border-bottom: 1px solid #edf2ed;
+        padding: 12px 14px 12px 118px;
+        min-height: 48px;
+        position: relative;
+        font-size: 0.94rem;
+        word-break: break-word;
+        overflow-wrap: break-word;
+      }
+
+      .results-table:not(.logbook-table) tbody td:last-child { border-bottom: 0; }
+
+      .results-table:not(.logbook-table) tbody td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 14px;
+        top: 12px;
+        width: 90px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: #5b7360;
+        line-height: 1.4;
+        word-break: keep-all;
+        white-space: normal;
+      }
+
+      .logbook-table,
+      .logbook-table thead,
+      .logbook-table tbody,
+      .logbook-table tr,
+      .logbook-table th,
+      .logbook-table td {
+        display: block;
+        width: 100%;
+      }
+
+      .logbook-table { min-width: 0; }
+      .logbook-table thead { display: none; }
+      .logbook-table tbody { display: grid; gap: 10px; }
+
+      .logbook-table tbody tr {
+        display: block;
+        background: #fff;
+        border: 1px solid #e1ebe1;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 8px 22px rgba(22, 44, 26, 0.05);
+      }
+
+      .logbook-table tbody td {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 8px;
+        padding: 11px 14px;
+        border-bottom: 1px solid #edf2ed;
+        font-size: 0.94rem;
+        position: relative;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        min-width: 0;
+      }
+
+      .logbook-table tbody td:last-child { border-bottom: 0; }
+
+      .logbook-table tbody td::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: #5b7360;
+        line-height: 1.4;
+        min-width: 70px;
+      }
+
+      .cell-compact, .cell-medium, .cell-wide, .cell-namewrap,
+      .logbook-table .cell-name { max-width: none; }
+
+      .empty-state-row td {
+        padding: 20px 16px;
+        display: block;
+        text-align: center;
+      }
+
+      .empty-state-row td::before { display: none; }
+    }
+
+    @media (max-width: 379px) {
+      :root {
+        --space-xs: 5px;
+        --space-sm: 8px;
+        --space-md: 12px;
+      }
+
+      .page-shell { padding: 8px; }
+
+      .card { padding: var(--space-md); border-radius: 18px; }
+
+      h1 { font-size: 1.4rem; }
+
+      .eyebrow { font-size: 0.68rem; padding: 5px 8px; }
+
+      .btn { min-height: 44px; padding: 10px 12px; font-size: 0.86rem; }
+
+      .actions-left, .actions-right { grid-template-columns: 1fr; gap: 8px; }
+
+      .results-table:not(.logbook-table) tbody td {
+        padding-left: 106px;
+        font-size: 0.9rem;
+      }
+
+      .results-table:not(.logbook-table) tbody td::before {
+        width: 80px;
+        font-size: 0.68rem;
+      }
+
+      .logbook-table tbody td {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+      }
+
+      .logbook-table tbody td::before { min-width: 60px; }
+
+      .modal { padding: 16px 14px; border-radius: 20px; }
+
+      .modal-icon { width: 48px; height: 48px; font-size: 1.3rem; }
+
+      .claim-body { padding: 16px 14px 14px; }
+
+      .claim-banner { padding: 12px 14px; }
+
+      .claim-banner-icon { width: 32px; height: 32px; font-size: 0.95rem; }
+
+      .claim-question-icon { width: 54px; height: 54px; font-size: 1.5rem; }
+
+      .qr-box { padding: 12px; }
+
+      #qrCanvas {
+        width: min(70vw, 230px) !important;
+        height: min(70vw, 230px) !important;
+        max-width: 230px;
+        max-height: 230px;
+      }
+
+      .result-count { font-size: 0.78rem; padding: 5px 10px; min-height: 30px; }
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    input:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 4px rgba(47, 111, 52, 0.2);
+    }
+
+    .btn, .modal-close, .result-count, .eyebrow {
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1a12;
+        --bg-accent: #16251a;
+        --card: rgba(28, 40, 32, 0.96);
+        --text: #e8f0e9;
+        --muted: #8a9e8e;
+        --line: #2a3f30;
+        --primary-soft: rgba(47, 111, 52, 0.2);
+        --shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+        --shadow-soft: 0 12px 34px rgba(0, 0, 0, 0.25);
+      }
+
+      input { background: #1a2a1e; border-color: #2a3f30; color: var(--text); }
+
+      .results-table thead th { background: #1a2a1e; }
+
+      .results-table tbody tr:hover { background: rgba(47, 111, 52, 0.08); }
+
+      .results-table tbody td { border-bottom-color: #25382b; }
+
+      .results-table:not(.logbook-table) tbody tr,
+      .logbook-table tbody tr { background: #1c2820; border-color: #2a3f30; }
+
+      .logbook-table tbody td { border-bottom-color: #25382b; }
+
+      .table-wrap, .logbook-table-wrap { background: rgba(28, 40, 32, 0.9); }
+
+      .modal { background: #1c2820; }
+
+      .modal-close { background: #2a3f30; }
+      .modal-close:hover { background: #354d3c; }
+
+      .qr-box { background: #1c2820; border-color: #2a3f30; }
+
+      .btn-secondary { background: #1a2e1e; border-color: #2a4a32; }
+      .btn-secondary:hover { background: #223a28; }
+
+      .btn-ghost { border-color: #2a3f30; }
+    }
+  </style>
 </head>
 <body>
   <main class="page-shell">
@@ -162,6 +1116,633 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
-  <script src="script.js"></script>
+  <script>
+    const CONFIG = {
+      appsScriptUrl: 'https://script.google.com/macros/s/AKfycbyM2g9ZWUeXafy6bAtkzJr9mtSkBzkMcjG1tUrfBeHHQzp36nA9YQfYIBS6bRFZHlmoTw/exec',
+      googleFormUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSdIcr7-lC4Lm5zkYiRm_56rlV3vDbx5izsxV-dSuQc1einRRg/viewform',
+      requestTimeoutMs: 20000,
+      logbookAutoRefreshMs: 30000,
+    };
+
+    const CAMPUS_ABBREVIATIONS = {
+      'collegeofartsandsciences': 'CAS',
+      'cas': 'CAS',
+      'collegeofeducation': 'CED',
+      'ced': 'CED',
+      'collegeofbusinessandaccountancy': 'CBA',
+      'cba': 'CBA',
+      'collegeofengineeringandtechnology': 'CET',
+      'cet': 'CET',
+      'instituteofinformationtechnologycollegeofcomputingmultimediaartsanddigitalinnovation': 'IIT/CCMADI',
+      'instituteofinformationtechnologyccmadi': 'IIT/CCMADI',
+      'instituteofinformationtechnology': 'IIT/CCMADI',
+      'collegeofcomputingmultimediaartsanddigitalinnovation': 'IIT/CCMADI',
+      'iitccmadi': 'IIT/CCMADI',
+      'iit': 'IIT/CCMADI',
+      'ccmadi': 'IIT/CCMADI',
+      'instituteofcriminaljusticeeducation': 'ICJE',
+      'icije': 'ICJE',
+      'icje': 'ICJE',
+      'collegeofagricultureforestryandenvironmentalscience': 'CAFES',
+      'cafes': 'CAFES',
+      'sanandrescampus': 'San Andres',
+      'sanandres': 'San Andres',
+      'calatravacampus': 'Calatrava',
+      'calatrava': 'Calatrava',
+      'sanagustincampus': 'San Agustin',
+      'sanagustin': 'San Agustin',
+      'santamariacampus': 'Santa Maria',
+      'santamaria': 'Santa Maria',
+      'santafecampus': 'Santa Fe',
+      'santafe': 'Santa Fe',
+      'rombloncampus': 'Romblon',
+      'romblon': 'Romblon',
+      'sanfernandocampus': 'San Fernando',
+      'sanfernando': 'San Fernando',
+      'cajidiocancampus': 'Cajidiocan',
+      'cajidiocan': 'Cajidiocan'
+    };
+
+    const form = document.getElementById('lookupForm');
+    const statusMessage = document.getElementById('statusMessage');
+    const checkBtn = document.getElementById('checkBtn');
+    const resultsSection = document.getElementById('resultsSection');
+    const resultsBody = document.getElementById('resultsBody');
+    const resultCountBadge = document.getElementById('resultCountBadge');
+
+    const notFoundModal = document.getElementById('notFoundModal');
+    const closeNotFoundModalBtn = document.getElementById('closeNotFoundModalBtn');
+    const dismissNotFoundModalBtn = document.getElementById('dismissNotFoundModalBtn');
+
+    const claimModal = document.getElementById('claimModal');
+    const claimNoBtn = document.getElementById('claimNoBtn');
+    const claimYesBtn = document.getElementById('claimYesBtn');
+    const claimModalSubtitle = document.getElementById('claimModalSubtitle');
+
+    const showQrBtn = document.getElementById('showQrBtn');
+    const copyLinkBtn = document.getElementById('copyLinkBtn');
+    const qrModal = document.getElementById('qrModal');
+    const closeQrModalBtn = document.getElementById('closeQrModalBtn');
+    const closeQrBtn = document.getElementById('closeQrBtn');
+    const qrCanvas = document.getElementById('qrCanvas');
+    const qrFormLink = document.getElementById('qrFormLink');
+
+    const logbookBody = document.getElementById('logbookBody');
+    const logbookDateFilter = document.getElementById('logbookDateFilter');
+    const logbookCountBadge = document.getElementById('logbookCountBadge');
+    const refreshLogbookBtn = document.getElementById('refreshLogbookBtn');
+
+    let currentMatchedRows = [];
+    let qrInstance = null;
+    let isClaimSubmitting = false;
+    let logbookAutoRefreshTimer = null;
+    let isLogbookLoading = false;
+    let hasManualLogbookFilter = false;
+
+    form.addEventListener('submit', handleLookup);
+    form.addEventListener('reset', handleReset);
+
+    closeNotFoundModalBtn.addEventListener('click', closeNotFoundModal);
+    dismissNotFoundModalBtn.addEventListener('click', closeNotFoundModal);
+    claimNoBtn.addEventListener('click', closeClaimModalByChoice);
+    claimYesBtn.addEventListener('click', handleClaimYes);
+
+    showQrBtn.addEventListener('click', openQrModal);
+    copyLinkBtn.addEventListener('click', copyGoogleFormLink);
+    closeQrModalBtn.addEventListener('click', closeQrModal);
+    closeQrBtn.addEventListener('click', closeQrModal);
+    refreshLogbookBtn.addEventListener('click', () => {
+      if (logbookDateFilter.value) hasManualLogbookFilter = true;
+      loadLogbookList(getActiveLogbookFilterDate());
+    });
+
+    logbookDateFilter.addEventListener('change', () => {
+      hasManualLogbookFilter = Boolean(logbookDateFilter.value);
+      loadLogbookList(getActiveLogbookFilterDate());
+    });
+
+    notFoundModal.addEventListener('click', (event) => {
+      if (event.target === notFoundModal) closeNotFoundModal();
+    });
+
+    qrModal.addEventListener('click', (event) => {
+      if (event.target === qrModal) closeQrModal();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+
+      if (qrModal.classList.contains('show')) {
+        closeQrModal();
+        return;
+      }
+
+      if (notFoundModal.classList.contains('show')) {
+        closeNotFoundModal();
+      }
+    });
+
+    window.addEventListener('load', () => {
+      loadLogbookList('');
+      startLogbookAutoRefresh();
+    });
+
+    window.addEventListener('focus', () => {
+      loadLogbookList(getActiveLogbookFilterDate(), { silent: true });
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        loadLogbookList(getActiveLogbookFilterDate(), { silent: true });
+      }
+    });
+
+    async function handleLookup(event) {
+      event.preventDefault();
+      closeNotFoundModal();
+      closeClaimModal();
+
+      const input = getNormalizedInput();
+
+      if (!CONFIG.appsScriptUrl.includes('/exec')) {
+        setStatus('Please set your Apps Script Web App URL first in script.js.', 'error');
+        return;
+      }
+
+      if (!input.firstName || !input.lastName) {
+        setStatus('Please enter both First Name and Last Name.', 'error');
+        hideResults();
+        return;
+      }
+
+      try {
+        setLookupLoadingState(true);
+        setStatus('Searching alumni record...', 'success');
+
+        const response = await jsonpRequest(CONFIG.appsScriptUrl, {
+          action: 'lookup',
+          firstName: input.firstName,
+          lastName: input.lastName,
+        });
+
+        if (!response || response.ok !== true) {
+          throw new Error(response?.error || 'Unable to read the sheet records.');
+        }
+
+        if (!Array.isArray(response.results) || response.results.length === 0) {
+          currentMatchedRows = [];
+          hideResults();
+          setStatus('No record found.', 'error');
+          openNotFoundModal();
+          return;
+        }
+
+        currentMatchedRows = response.results
+          .map((record) => Number(record.rowNumber))
+          .filter((rowNumber) => Number.isInteger(rowNumber) && rowNumber > 0);
+
+        renderResults(response.results);
+        setStatus('Record found.', 'success');
+        openClaimModal(response.results.length);
+      } catch (error) {
+        currentMatchedRows = [];
+        hideResults();
+        setStatus(error.message || 'Something went wrong while searching.', 'error');
+      } finally {
+        setLookupLoadingState(false);
+      }
+    }
+
+    async function handleClaimYes() {
+      if (!currentMatchedRows.length) {
+        closeClaimModal();
+        setStatus('No matched record is ready to log.', 'error');
+        return;
+      }
+
+      try {
+        isClaimSubmitting = true;
+        setClaimLoadingState(true);
+        setStatus('Recording claim in logbook...', 'success');
+
+        const response = await jsonpRequest(CONFIG.appsScriptUrl, {
+          action: 'claim',
+          rowNumbers: currentMatchedRows.join(','),
+        });
+
+        if (!response || response.ok !== true) {
+          throw new Error(response?.error || 'Unable to record the claim in logbook.');
+        }
+
+        const insertedCount = Number(response.insertedCount || 0);
+        closeClaimModal();
+        setStatus(
+          insertedCount > 0
+            ? `Claim recorded successfully in logbook. ${insertedCount} row${insertedCount > 1 ? 's' : ''} added.`
+            : 'No new row was added to the logbook.',
+          insertedCount > 0 ? 'success' : 'error'
+        );
+
+        hasManualLogbookFilter = true;
+        if (response.filterDate) logbookDateFilter.value = response.filterDate;
+        await loadLogbookList(response.filterDate || getActiveLogbookFilterDate());
+      } catch (error) {
+        setStatus(error.message || 'Something went wrong while saving the claim.', 'error');
+      } finally {
+        isClaimSubmitting = false;
+        setClaimLoadingState(false);
+      }
+    }
+
+    function handleReset() {
+      setTimeout(() => {
+        currentMatchedRows = [];
+        setStatus('');
+        hideResults();
+        closeNotFoundModal();
+        closeClaimModal();
+        closeQrModal();
+      }, 0);
+    }
+
+    function getNormalizedInput() {
+      return {
+        firstName: normalizeName(document.getElementById('firstName').value),
+        lastName: normalizeName(document.getElementById('lastName').value),
+      };
+    }
+
+    function setLookupLoadingState(isLoading) {
+      checkBtn.disabled = isLoading;
+      checkBtn.textContent = isLoading ? 'Searching...' : 'Search Alumni';
+    }
+
+    function setClaimLoadingState(isLoading) {
+      claimYesBtn.disabled = isLoading;
+      claimNoBtn.disabled = isLoading;
+      claimYesBtn.textContent = isLoading ? 'SAVING...' : 'OO, I-RECORD';
+      claimNoBtn.textContent = 'HINDI';
+    }
+
+    function setStatus(message, type = '') {
+      if (!statusMessage) return;
+      statusMessage.textContent = message;
+      statusMessage.className = `status ${type}`.trim();
+    }
+
+    function renderResults(results) {
+      resultsBody.innerHTML = '';
+
+      results.forEach((record) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td data-label="Timestamp" class="cell-medium">${escapeHtml(formatTimestamp(record.timestamp || ''))}</td>
+          <td data-label="First Name" class="cell-medium cell-namewrap">${renderNullable(record.firstName)}</td>
+          <td data-label="Middle Name" class="cell-compact">${renderNullable(record.middleName)}</td>
+          <td data-label="Last Name" class="cell-compact">${renderNullable(record.lastName)}</td>
+          <td data-label="Degree Program" class="cell-medium">${renderNullable(record.degreeProgram)}</td>
+          <td data-label="Campus/College" class="cell-medium">${renderNullable(abbreviateCampus(record.campusCollege))}</td>
+        `;
+        resultsBody.appendChild(row);
+      });
+
+      const count = results.length;
+      resultCountBadge.textContent = `${count} ${count === 1 ? 'result' : 'results'}`;
+      resultsSection.classList.remove('is-hidden');
+      resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function renderNullable(value) {
+      if (!value || String(value).trim() === '') {
+        return '<span class="empty-cell">—</span>';
+      }
+      return escapeHtml(String(value));
+    }
+
+    function hideResults() {
+      resultsBody.innerHTML = '';
+      resultsSection.classList.add('is-hidden');
+      resultCountBadge.textContent = '0 result';
+    }
+
+    function openNotFoundModal() {
+      notFoundModal.classList.add('show');
+      notFoundModal.setAttribute('aria-hidden', 'false');
+      syncBodyModalState();
+    }
+
+    function closeNotFoundModal() {
+      notFoundModal.classList.remove('show');
+      notFoundModal.setAttribute('aria-hidden', 'true');
+      syncBodyModalState();
+    }
+
+    function openClaimModal(resultCount) {
+      claimModalSubtitle.textContent = resultCount > 1
+        ? `May ${resultCount} magkatulad na tala. Pindutin ang OO para maisama silang lahat sa logbook ngayong araw.`
+        : 'Pindutin ang OO para maitala agad sa logbook ngayong araw.';
+      claimModal.classList.add('show');
+      claimModal.setAttribute('aria-hidden', 'false');
+      syncBodyModalState();
+    }
+
+    function closeClaimModalByChoice() {
+      if (isClaimSubmitting) return;
+      closeClaimModal();
+    }
+
+    function closeClaimModal() {
+      claimModal.classList.remove('show');
+      claimModal.setAttribute('aria-hidden', 'true');
+      syncBodyModalState();
+    }
+
+    function openQrModal() {
+      if (!CONFIG.googleFormUrl.includes('docs.google.com/forms')) {
+        setStatus('Please set your Google Form URL first in script.js.', 'error');
+        return;
+      }
+
+      if (typeof QRious === 'undefined') {
+        setStatus('QR code library failed to load. Check your internet connection.', 'error');
+        return;
+      }
+
+      if (!qrInstance) {
+        qrInstance = new QRious({
+          element: qrCanvas,
+          value: CONFIG.googleFormUrl,
+          size: 320,
+          level: 'H',
+          background: 'white',
+          foreground: 'black',
+          padding: 14,
+        });
+      } else {
+        qrInstance.value = CONFIG.googleFormUrl;
+        qrInstance.size = 320;
+      }
+
+      qrFormLink.href = CONFIG.googleFormUrl;
+      qrModal.classList.add('show');
+      qrModal.setAttribute('aria-hidden', 'false');
+      syncBodyModalState();
+    }
+
+    function closeQrModal() {
+      qrModal.classList.remove('show');
+      qrModal.setAttribute('aria-hidden', 'true');
+      syncBodyModalState();
+    }
+
+    async function copyGoogleFormLink() {
+      if (!CONFIG.googleFormUrl.includes('docs.google.com/forms')) {
+        setStatus('Please set your Google Form URL first in script.js.', 'error');
+        return;
+      }
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(CONFIG.googleFormUrl);
+        } else {
+          fallbackCopyText(CONFIG.googleFormUrl);
+        }
+        setStatus('Google Form link copied.', 'success');
+      } catch (error) {
+        setStatus('Unable to copy the Google Form link.', 'error');
+      }
+    }
+
+    function fallbackCopyText(text) {
+      const temp = document.createElement('textarea');
+      temp.value = text;
+      temp.setAttribute('readonly', '');
+      temp.style.position = 'absolute';
+      temp.style.left = '-9999px';
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+    }
+
+    async function loadLogbookList(filterDate, options = {}) {
+      if (!CONFIG.appsScriptUrl.includes('/exec')) return;
+      if (isLogbookLoading) return;
+
+      const { silent = false } = options;
+
+      try {
+        isLogbookLoading = true;
+        refreshLogbookBtn.disabled = true;
+
+        const response = await jsonpRequest(CONFIG.appsScriptUrl, {
+          action: 'logbook_list',
+          filterDate: filterDate || '',
+        });
+
+        if (!response || response.ok !== true) {
+          throw new Error(response?.error || 'Unable to load the logbook list.');
+        }
+
+        const normalizedFilterDate = response.filterDate || '';
+        if (!hasManualLogbookFilter) {
+          logbookDateFilter.value = normalizedFilterDate || '';
+        }
+
+        renderLogbookList(response.results || []);
+      } catch (error) {
+        if (!silent) {
+          renderLogbookList([], error.message || 'Unable to load logbook list.');
+        }
+      } finally {
+        isLogbookLoading = false;
+        refreshLogbookBtn.disabled = false;
+      }
+    }
+
+    function startLogbookAutoRefresh() {
+      stopLogbookAutoRefresh();
+
+      logbookAutoRefreshTimer = window.setInterval(() => {
+        loadLogbookList(getActiveLogbookFilterDate(), { silent: true });
+      }, CONFIG.logbookAutoRefreshMs);
+    }
+
+    function stopLogbookAutoRefresh() {
+      if (logbookAutoRefreshTimer) {
+        window.clearInterval(logbookAutoRefreshTimer);
+        logbookAutoRefreshTimer = null;
+      }
+    }
+
+    function getActiveLogbookFilterDate() {
+      return hasManualLogbookFilter ? (logbookDateFilter.value || '') : '';
+    }
+
+    function renderLogbookList(records, errorMessage = '') {
+      logbookBody.innerHTML = '';
+
+      if (errorMessage) {
+        const row = document.createElement('tr');
+        row.className = 'empty-state-row';
+        row.innerHTML = `<td colspan="3">${escapeHtml(errorMessage)}</td>`;
+        logbookBody.appendChild(row);
+        logbookCountBadge.textContent = '0 record';
+        return;
+      }
+
+      if (!records.length) {
+        const row = document.createElement('tr');
+        row.className = 'empty-state-row';
+        row.innerHTML = '<td colspan="3">No logbook record found for the selected date.</td>';
+        logbookBody.appendChild(row);
+        logbookCountBadge.textContent = '0 record';
+        return;
+      }
+
+      records.forEach((record, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td data-label="No" class="cell-compact">${index + 1}</td>
+          <td data-label="Full Name" class="cell-name">${renderNullable(record.fullName)}</td>
+          <td data-label="Campus" class="cell-medium">${renderNullable(abbreviateCampus(record.campusCollege))}</td>
+        `;
+        logbookBody.appendChild(row);
+      });
+
+      logbookCountBadge.textContent = `${records.length} ${records.length === 1 ? 'record' : 'records'}`;
+    }
+
+    function syncBodyModalState() {
+      const hasOpenModal =
+        notFoundModal.classList.contains('show') ||
+        claimModal.classList.contains('show') ||
+        qrModal.classList.contains('show');
+
+      document.body.classList.toggle('modal-open', hasOpenModal);
+    }
+
+    function jsonpRequest(baseUrl, params) {
+      return new Promise((resolve, reject) => {
+        const callbackName = `lookupCallback_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        const script = document.createElement('script');
+        let timeoutId;
+
+        const cleanup = () => {
+          if (window[callbackName]) delete window[callbackName];
+          script.remove();
+          clearTimeout(timeoutId);
+        };
+
+        timeoutId = window.setTimeout(() => {
+          cleanup();
+          reject(new Error('Request timed out while contacting Apps Script.'));
+        }, CONFIG.requestTimeoutMs);
+
+        window[callbackName] = (payload) => {
+          cleanup();
+          resolve(payload);
+        };
+
+        script.onerror = () => {
+          cleanup();
+          reject(new Error('Unable to connect to Apps Script. Check your deployed URL and access settings.'));
+        };
+
+        const query = new URLSearchParams({
+          ...params,
+          callback: callbackName,
+          _: Date.now().toString(),
+        });
+
+        script.src = `${baseUrl}?${query.toString()}`;
+        document.body.appendChild(script);
+      });
+    }
+
+    function normalizeName(value) {
+      return String(value || '')
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '');
+    }
+
+    function abbreviateCampus(value) {
+      const raw = String(value || '').trim();
+      if (!raw) return '';
+
+      const normalized = normalizeCampusKey(raw);
+      if (CAMPUS_ABBREVIATIONS[normalized]) {
+        return CAMPUS_ABBREVIATIONS[normalized];
+      }
+
+      if (normalized.includes('instituteofinformationtechnology') || normalized.includes('collegeofcomputingmultimediaartsanddigitalinnovation')) {
+        return 'IIT/CCMADI';
+      }
+      if (normalized.includes('collegeofartsandsciences')) return 'CAS';
+      if (normalized.includes('collegeofeducation')) return 'CED';
+      if (normalized.includes('collegeofbusinessandaccountancy')) return 'CBA';
+      if (normalized.includes('collegeofengineeringandtechnology')) return 'CET';
+      if (normalized.includes('instituteofcriminaljusticeeducation')) return 'ICJE';
+      if (normalized.includes('collegeofagricultureforestryandenvironmentalscience')) return 'CAFES';
+      if (normalized.includes('sanandres')) return 'San Andres';
+      if (normalized.includes('calatrava')) return 'Calatrava';
+      if (normalized.includes('sanagustin')) return 'San Agustin';
+      if (normalized.includes('santamaria')) return 'Santa Maria';
+      if (normalized.includes('santafe')) return 'Santa Fe';
+      if (normalized.includes('romblon')) return 'Romblon';
+      if (normalized.includes('sanfernando')) return 'San Fernando';
+      if (normalized.includes('cajidiocan')) return 'Cajidiocan';
+
+      return raw;
+    }
+
+    function normalizeCampusKey(value) {
+      return String(value || '')
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '')
+        .replace(/[^a-z0-9]/g, '');
+    }
+
+    function formatTimestamp(value) {
+      if (!value) return '—';
+
+      const raw = String(value).trim();
+      let parsed = new Date(raw);
+
+      if (Number.isNaN(parsed.getTime()) && raw.includes(' ')) {
+        parsed = new Date(raw.replace(' ', 'T'));
+      }
+
+      if (Number.isNaN(parsed.getTime())) return raw;
+
+      const datePart = parsed.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+
+      const timePart = parsed
+        .toLocaleTimeString(undefined, {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        })
+        .replace(/\s/g, '')
+        .toLowerCase();
+
+      return `${datePart}- ${timePart}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+  </script>
 </body>
 </html>
